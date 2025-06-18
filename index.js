@@ -1,5 +1,7 @@
-import { registerRootComponent } from 'expo';
+// Import the polyfill before any other imports
+import './src/utils/uuid-polyfill';
 
+import { registerRootComponent } from 'expo';
 import App from './App';
 
 // registerRootComponent calls AppRegistry.registerComponent('main', () => App);
