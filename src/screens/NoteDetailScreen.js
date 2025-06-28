@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Alert,
   Share,
   Platform,
   StatusBar,
@@ -17,8 +16,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useNotes } from '../context/NoteContext';
 import { formatDate } from '../utils/helpers';
 import { getElevation } from '../utils/elevationStyles';
+import NoteDeleteModal from '../components/NoteDeleteModal';
 import * as Animatable from 'react-native-animatable';
-import VoiceRecorder from '../components/VoiceRecorder';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,6 +49,7 @@ const NoteDetailScreen = ({ navigation, route }) => {
   const [shadowOpacity, setShadowOpacity] = useState(0.3);
   const [shadowRadius, setShadowRadius] = useState(8);
   const [elevationLevel, setElevationLevel] = useState(4);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
   const handleScroll = (event) => {
     const position = event.nativeEvent.contentOffset.y;
@@ -71,24 +71,17 @@ const NoteDetailScreen = ({ navigation, route }) => {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Note',
-      'Are you sure you want to delete this note?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          onPress: () => {
-            deleteNote(noteId);
-            navigation.goBack();
-          },
-          style: 'destructive',
-        },
-      ]
-    );
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = () => {
+    deleteNote(noteId);
+    setDeleteModalVisible(false);
+    navigation.goBack();
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalVisible(false);
   };
 
   const handleShare = async () => {
@@ -98,7 +91,7 @@ const NoteDetailScreen = ({ navigation, route }) => {
         title: note.title,
       });
     } catch (error) {
-      Alert.alert('Error', 'Failed to share note');
+      console.error('Error sharing note:', error);
     }
   };
 
@@ -357,31 +350,11 @@ const NoteDetailScreen = ({ navigation, route }) => {
         >
           {note.content}
         </Animatable.Text>
+      </ScrollView>
 
-        {note.audioUri && (
-          <Animatable.View 
-            style={styles.audioPlayerContainer}
-            animation="fadeInUp"
-            duration={500}
-            delay={400}
-            easing="ease-out-cubic"
-            useNativeDriver
-          >
-            <Text style={styles.audioLabel}>Voice Recording</Text>
-            <VoiceRecorder 
-              audioUri={note.audioUri} 
-              onRecordingComplete={(uri) => {
-                // Update note with new recording if user re-records
-                if (uri) {
-                  updateNote(note.id, { audioUri: uri });
-                }
-              }}
-            />
-          </Animatable.View>
-        )}
-      </ScrollView>      <Animatable.View 
+      <Animatable.View 
         style={styles.footer}
-        animation="fadeInUp"
+        animation="slideInUp"
         duration={500}
         delay={400}
         easing="ease-out-cubic"
@@ -393,21 +366,28 @@ const NoteDetailScreen = ({ navigation, route }) => {
             note.isArchived ? styles.unarchiveButton : {}
           ]}
           onPress={handleToggleArchive}
-          activeOpacity={0.7}
+          activeOpacity={0.8}
         >
           <MaterialIcons
             name={note.isArchived ? "unarchive" : "archive"}
             size={20}
-            color={note.isArchived ? "#e67700" : "#1a73e8"}
+            color={note.isArchived ? "#ff9800" : "#1a73e8"}
           />
           <Text style={[
             styles.archiveButtonText,
             note.isArchived ? styles.unarchiveButtonText : {}
           ]}>
-            {note.isArchived ? "Unarchive" : "Archive"}
+            {note.isArchived ? "Unarchive Note" : "Archive Note"}
           </Text>
         </TouchableOpacity>
       </Animatable.View>
+
+      <NoteDeleteModal
+        visible={deleteModalVisible}
+        onClose={cancelDelete}
+        onConfirm={confirmDelete}
+        noteTitle={note.title}
+      />
     </Animated.View>
   );
 };
@@ -415,181 +395,172 @@ const NoteDetailScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({  container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    // Add safe area insets to avoid status bar overlap
     paddingTop: Platform.OS === 'ios' ? 50 : 30,
   },
   header: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40, // Increased top margin to avoid status bar
+    top: Platform.OS === 'ios' ? 60 : 40,
     left: 0,
     right: 0,
     zIndex: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 12,
     backgroundColor: 'transparent',
-  },  backButton: {
-    padding: 10,
-    borderRadius: 24,
+  },
+  backButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.15,
-        shadowRadius: 6,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 6,
       },
     }),
   },
   headerActions: {
     flexDirection: 'row',
+    gap: 8,
   },
   iconButton: {
-    padding: 10,
-    marginLeft: 8,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.15,
-        shadowRadius: 6,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 6,
       },
     }),
-  },contentContainer: {
+  },
+  contentContainer: {
     flex: 1,
-    padding: 16,
-    paddingTop: Platform.OS === 'ios' ? 120 : 90, // Increased to ensure content starts below header
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 130 : 100,
   },
   scrollContent: {
-    paddingBottom: 80, // Increased to add more space at the bottom
+    paddingBottom: 100,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#333',
-    letterSpacing: -0.5,
+    fontSize: 32,
+    fontWeight: '800',
+    marginBottom: 16,
+    color: '#1a1a1a',
+    letterSpacing: -0.8,
+    lineHeight: 38,
   },
   metaContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingVertical: 8,
   },
   categoryContainer: {
-    backgroundColor: 'rgba(26, 115, 232, 0.08)',
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    ...getElevation(1),
+    backgroundColor: 'rgba(26, 115, 232, 0.12)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    ...getElevation(2),
   },
   categoryText: {
-    fontSize: 13,
+    fontSize: 14,
     color: '#1a73e8',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   dateText: {
-    fontSize: 12,
-    color: '#888',
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    marginBottom: 24,
+    marginBottom: 28,
   },
   tag: {
-    backgroundColor: 'rgba(26, 115, 232, 0.1)',
-    paddingVertical: 5,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginRight: 8,
-    marginBottom: 8,
-    ...getElevation(1),
+    backgroundColor: 'rgba(26, 115, 232, 0.08)',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    marginRight: 10,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 115, 232, 0.2)',
   },
   tagText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#1a73e8',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   content: {
-    fontSize: 16,
-    lineHeight: 26,
-    color: '#333',
-    letterSpacing: 0.2,
+    fontSize: 17,
+    lineHeight: 28,
+    color: '#2c2c2c',
+    letterSpacing: 0.3,
+    fontWeight: '400',
   },
-  audioPlayerContainer: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.05)',
-    ...getElevation(2),
-  },
-  audioLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 8,
-  },  footer: {
-    padding: 16,
+  footer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     backgroundColor: 'rgba(255,255,255,0.98)',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopColor: 'rgba(0,0,0,0.06)',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: -3 },
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
       },
       android: {
-        elevation: 8,
+        elevation: 12,
       },
     }),
-    paddingBottom: Platform.OS === 'ios' ? 25 : 16,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 20,
   },
   archiveButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    backgroundColor: 'rgba(26, 115, 232, 0.08)',
-    borderRadius: 12,
-    // Improve elevation with more pronounced shadow
-    ...Platform.select({
-      ios: {
-        shadowColor: '#1a73e8',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 5,
-        borderWidth: 0.5,
-        borderColor: 'rgba(26, 115, 232, 0.2)',
-      },
-    }),
-  },archiveButtonText: {
-    marginLeft: 8,
-    fontSize: 14,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: 'rgba(26, 115, 232, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 115, 232, 0.2)',
+  },
+  archiveButtonText: {
+    marginLeft: 10,
+    fontSize: 16,
     color: '#1a73e8',
-    fontWeight: '500',
+    fontWeight: '600',
   },
   unarchiveButton: {
-    backgroundColor: 'rgba(230, 119, 0, 0.08)',
+    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+    borderColor: 'rgba(255, 152, 0, 0.2)',
   },
   unarchiveButtonText: {
-    color: '#e67700',
+    color: '#ff9800',
   },
 });
 

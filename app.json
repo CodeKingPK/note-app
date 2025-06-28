@@ -1,29 +1,49 @@
 {
   "expo": {
-    "name": "note-app",
-    "slug": "note-app",
+    "name": "Smart Notes",
+    "slug": "smart-notes-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "description": "A smart and intuitive note-taking app built with React Native",
+    "platforms": ["ios", "android", "web"],
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#f8f9fa"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pritamkarmakar.smartnotes",
+      "buildNumber": "1.0.0",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#f8f9fa"
       },
+      "package": "com.pritamkarmakar.smartnotes",
+      "versionCode": 1,
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "name": "Smart Notes",
+      "shortName": "Smart Notes",
+      "description": "A smart and intuitive note-taking app",
+      "startUrl": "/",
+      "display": "standalone",
+      "orientation": "portrait",
+      "themeColor": "#2196F3",
+      "backgroundColor": "#f8f9fa"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "smart-notes-pritam-karmakar"
+      }
     }
   }
 }

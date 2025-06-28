@@ -7,7 +7,6 @@ import {
   Text, 
   TextInput,
   ActivityIndicator,
-  Alert,
   Share,
   Platform,
   Dimensions,
@@ -20,6 +19,7 @@ import { useNotes } from '../context/NoteContext';
 import NoteCard from '../components/NoteCard';
 import EmptyState from '../components/EmptyState';
 import NoteActionMenu from '../components/NoteActionMenu';
+import DeleteConfirmationModal from '../components/DeleteConfirmationModal';
 import { useNoteSearch } from '../utils/useNoteSearch';
 import * as Animatable from 'react-native-animatable';
 import { getElevation } from '../utils/elevationStyles';
@@ -49,6 +49,7 @@ const HomeScreen = ({ navigation }) => {
 
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [selectedNote, setSelectedNote] = useState(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   
   // Animation references
   const fabScale = useRef(new Animated.Value(1)).current;
@@ -169,27 +170,21 @@ const HomeScreen = ({ navigation }) => {
 
   const handleDelete = () => {
     if (selectedNote) {
-      confirmDelete(selectedNote);
       setActionMenuVisible(false);
+      setDeleteModalVisible(true);
     }
   };
 
-  const confirmDelete = (note) => {
-    Alert.alert(
-      'Delete Note',
-      `Are you sure you want to delete "${note.title || 'Untitled Note'}"?`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          onPress: () => deleteNote(note.id),
-          style: 'destructive',
-        },
-      ]
-    );
+  const confirmDelete = () => {
+    if (selectedNote) {
+      deleteNote(selectedNote.id);
+      setDeleteModalVisible(false);
+      setSelectedNote(null);
+    }
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalVisible(false);
   };
 
   const renderCategoryItem = ({ item, index }) => (
@@ -425,6 +420,13 @@ const HomeScreen = ({ navigation }) => {
         onShare={handleShare}
         onEdit={handleEdit}
       />
+      
+      <DeleteConfirmationModal
+        visible={deleteModalVisible}
+        onClose={cancelDelete}
+        onConfirm={confirmDelete}
+        noteTitle={selectedNote?.title}
+      />
     </View>
   );
 };
@@ -571,7 +573,14 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-  }
+  },
+  fabIcon: {
+    fontSize: 30,
+    color: '#ffffff',
+    fontWeight: 'bold',
+    lineHeight: 36,
+    textAlign: 'center',
+  },
 });
 
 export default HomeScreen;

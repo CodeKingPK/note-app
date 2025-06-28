@@ -6,23 +6,23 @@ import {
   TouchableOpacity,
   FlatList,
   TextInput,
-  Alert,
-  Switch,
+  ScrollView,
   Animated,
   Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNotes } from '../context/NoteContext';
+import CategoryDeleteModal from '../components/CategoryDeleteModal';
 import * as Animatable from 'react-native-animatable';
 import { getElevation } from '../utils/elevationStyles';
 
 const SettingsScreen = () => {
   const { categories, addCategory, removeCategory } = useNotes();
   const [newCategory, setNewCategory] = useState('');
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState(null);
   
-  // Sample settings options
-  const [darkMode, setDarkMode] = useState(false);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  // Auto-save interval setting
   const [autoSaveInterval, setAutoSaveInterval] = useState(30); // seconds
   
   // Animation values for interval controls
@@ -47,37 +47,51 @@ const SettingsScreen = () => {
   };
 
   const handleAddCategory = () => {
-    if (newCategory.trim()) {
-      if (categories.includes(newCategory.trim())) {
-        Alert.alert('Error', 'This category already exists');
-      } else {
-        addCategory(newCategory.trim());
-        setNewCategory('');
-      }
+    const trimmedCategory = newCategory.trim();
+    
+    if (!trimmedCategory) {
+      console.log('Category name cannot be empty');
+      return;
     }
+    
+    if (categories.includes(trimmedCategory)) {
+      console.log('Category already exists');
+      // You could add a toast notification here
+      return;
+    }
+    
+    if (trimmedCategory.length > 20) {
+      console.log('Category name too long (max 20 characters)');
+      return;
+    }
+    
+    addCategory(trimmedCategory);
+    setNewCategory('');
+    console.log(`Category "${trimmedCategory}" added successfully`);
   };
 
   const handleDeleteCategory = (category) => {
     if (['Personal', 'Work', 'Ideas', 'To-Do'].includes(category)) {
-      Alert.alert('Error', 'Cannot delete default categories');
+      // Could add a toast notification here
+      console.log('Cannot delete default categories');
       return;
     }
 
-    Alert.alert(
-      'Delete Category',
-      `Are you sure you want to delete "${category}"? Notes in this category will be moved to "Personal".`,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          onPress: () => removeCategory(category),
-          style: 'destructive',
-        },
-      ]
-    );
+    setCategoryToDelete(category);
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDeleteCategory = () => {
+    if (categoryToDelete) {
+      removeCategory(categoryToDelete);
+      setDeleteModalVisible(false);
+      setCategoryToDelete(null);
+    }
+  };
+
+  const cancelDeleteCategory = () => {
+    setDeleteModalVisible(false);
+    setCategoryToDelete(null);
   };
 
   const renderSettingItem = (icon, title, description, component, index = 0) => (
@@ -101,54 +115,14 @@ const SettingsScreen = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView 
+      style={styles.container} 
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+    >
       <Animatable.View 
         animation="fadeIn" 
         duration={500}
-        useNativeDriver
-        style={styles.section}
-      >
-        <Text style={styles.sectionTitle}>Appearance</Text>
-        {renderSettingItem(
-          'dark-mode',
-          'Dark Mode',
-          'Use dark theme throughout the app',
-          <Switch
-            value={darkMode}
-            onValueChange={setDarkMode}
-            trackColor={{ false: '#d1d1d1', true: '#2196F3' }}
-            thumbColor="#fff"
-          />,
-          0
-        )}
-      </Animatable.View>
-
-      <Animatable.View 
-        animation="fadeIn" 
-        duration={500}
-        delay={100}
-        useNativeDriver
-        style={styles.section}
-      >
-        <Text style={styles.sectionTitle}>Notifications</Text>
-        {renderSettingItem(
-          'notifications',
-          'Enable Notifications',
-          'Get reminders about your notes',
-          <Switch
-            value={notificationsEnabled}
-            onValueChange={setNotificationsEnabled}
-            trackColor={{ false: '#d1d1d1', true: '#2196F3' }}
-            thumbColor="#fff"
-          />,
-          1
-        )}
-      </Animatable.View>
-
-      <Animatable.View 
-        animation="fadeIn" 
-        duration={500}
-        delay={200}
         useNativeDriver
         style={styles.section}
       >
@@ -190,14 +164,14 @@ const SettingsScreen = () => {
               </TouchableOpacity>
             </Animated.View>
           </View>,
-          2
+          0
         )}
       </Animatable.View>
 
       <Animatable.View 
         animation="fadeIn" 
         duration={500}
-        delay={300}
+        delay={100}
         useNativeDriver
         style={styles.section}
       >
@@ -211,16 +185,19 @@ const SettingsScreen = () => {
         <Animatable.View 
           animation="fadeInUp"
           duration={600}
-          delay={400}
+          delay={200}
           useNativeDriver
           style={styles.addCategoryContainer}
         >
           <TextInput
             style={styles.addCategoryInput}
             placeholder="Add new category..."
+            placeholderTextColor="#999"
             value={newCategory}
             onChangeText={setNewCategory}
             onSubmitEditing={handleAddCategory}
+            maxLength={20}
+            returnKeyType="done"
           />
           <TouchableOpacity
             style={styles.addCategoryButton}
@@ -231,14 +208,13 @@ const SettingsScreen = () => {
           </TouchableOpacity>
         </Animatable.View>
 
-        <FlatList
-          data={categories}
-          keyExtractor={(item) => item}
-          renderItem={({ item, index }) => (
+        <View style={styles.categoriesListContainer}>
+          {categories.map((item, index) => (
             <Animatable.View 
+              key={item}
               animation="fadeInRight"
               duration={400}
-              delay={500 + (index * 50)}
+              delay={300 + (index * 50)}
               useNativeDriver
               style={styles.categoryItem}
             >
@@ -257,20 +233,19 @@ const SettingsScreen = () => {
                   color={
                     ['Personal', 'Work', 'Ideas', 'To-Do'].includes(item)
                       ? '#ccc'
-                      : '#ff5252'
+                      : '#ff9800'
                   }
                 />
               </TouchableOpacity>
             </Animatable.View>
-          )}
-          style={styles.categoriesList}
-        />
+          ))}
+        </View>
       </Animatable.View>
 
       <Animatable.View 
         animation="fadeIn" 
         duration={500}
-        delay={600}
+        delay={200}
         useNativeDriver
         style={styles.section}
       >
@@ -280,10 +255,68 @@ const SettingsScreen = () => {
           'App Version',
           'Smart Notes v1.0.0',
           null,
+          1
+        )}
+        {renderSettingItem(
+          'smartphone',
+          'Platform',
+          'Built with React Native',
+          null,
+          2
+        )}
+        {renderSettingItem(
+          'person',
+          'Developer',
+          'Pritam Karmakar',
+          null,
           3
         )}
+        {renderSettingItem(
+          'build',
+          'Build',
+          'Release 2025.06.28',
+          null,
+          4
+        )}
+        {renderSettingItem(
+          'favorite',
+          'Support',
+          'Rate us on App Store',
+          <MaterialIcons name="chevron-right" size={20} color="#ccc" />,
+          5
+        )}
       </Animatable.View>
-    </View>
+
+      <Animatable.View 
+        animation="fadeIn" 
+        duration={500}
+        delay={250}
+        useNativeDriver
+        style={styles.creditSection}
+      >
+        <View style={styles.creditContainer}>
+          <MaterialIcons name="code" size={32} color="#2196F3" style={styles.creditIcon} />
+          <View style={styles.creditContent}>
+            <Text style={styles.creditTitle}>Developed by</Text>
+            <Text style={styles.creditName}>Pritam Karmakar</Text>
+            <Text style={styles.creditSubtitle}>Full Stack Developer</Text>
+          </View>
+        </View>
+        
+        <View style={styles.creditFooter}>
+          <Text style={styles.creditFooterText}>
+            Made with ❤️ for better note-taking experience
+          </Text>
+        </View>
+      </Animatable.View>
+
+      <CategoryDeleteModal
+        visible={deleteModalVisible}
+        onClose={cancelDeleteCategory}
+        onConfirm={confirmDeleteCategory}
+        categoryName={categoryToDelete}
+      />
+    </ScrollView>
   );
 };
 
@@ -291,6 +324,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f8f8',
+  },
+  scrollContent: {
+    paddingBottom: 40,
   },
   section: {
     marginBottom: 24,
@@ -388,6 +424,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...getElevation(3),
   },
+  categoriesListContainer: {
+    marginBottom: 8,
+  },
   categoriesList: {
     maxHeight: 220,
   },
@@ -417,6 +456,58 @@ const styles = StyleSheet.create({
   },
   categoryDeleteButton: {
     padding: 8,
+  },
+  creditSection: {
+    marginBottom: 24,
+    marginHorizontal: 16,
+  },
+  creditContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginBottom: 12,
+    ...getElevation(3),
+  },
+  creditIcon: {
+    marginRight: 16,
+  },
+  creditContent: {
+    flex: 1,
+  },
+  creditTitle: {
+    fontSize: 14,
+    color: '#888',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  creditName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2196F3',
+    marginBottom: 2,
+  },
+  creditSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  creditFooter: {
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    ...getElevation(2),
+  },
+  creditFooterText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

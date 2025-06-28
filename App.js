@@ -130,13 +130,13 @@ export default function App() {
             name="Home"
             component={HomeScreen}
             options={({ navigation }) => ({
-              title: 'Notes',
+              title: 'Smart Notes',
               headerRight: () => (
                 <Animatable.View
                   animation="fadeIn"
                   duration={600}
                   useNativeDriver
-                  style={{ marginRight: 4 }} // Add additional margin for the container
+                  style={styles.headerRightContainer}
                 >
                   <TouchableOpacity 
                     style={styles.headerButton}
@@ -180,12 +180,8 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  headerButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8, // Add margin to move it away from edge
-    borderRadius: 20,
-    backgroundColor: '#f5f5f5', // Light background for better visibility
-    ...getElevation(2),
+  headerRightContainer: {
+    marginLeft: 36,
+    alignItems: 'flex-end',
   },
 });

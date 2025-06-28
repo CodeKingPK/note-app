@@ -5,7 +5,6 @@ import {
   TouchableOpacity, 
   Text, 
   ScrollView,
-  Alert,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -16,7 +15,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNotes } from '../context/NoteContext';
 import NoteEditor from '../components/NoteEditor';
-import VoiceRecorder from '../components/VoiceRecorder';
+import NoteDeleteModal from '../components/NoteDeleteModal';
 import RichTextEditor from '../components/RichTextEditor';
 import * as Animatable from 'react-native-animatable';
 
@@ -39,8 +38,8 @@ const NoteEditorScreen = ({ navigation, route }) => {
   const [isPinned, setIsPinned] = useState(false);
   const [isOptionsVisible, setIsOptionsVisible] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
   const [useRichTextEditor, setUseRichTextEditor] = useState(false);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   
   // Animation values
   const headerOpacity = useRef(new Animated.Value(1)).current;
@@ -166,24 +165,17 @@ const NoteEditorScreen = ({ navigation, route }) => {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      'Delete Note',
-      'Are you sure you want to delete this note?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Delete',
-          onPress: () => {
-            deleteNote(noteId);
-            navigation.goBack();
-          },
-          style: 'destructive',
-        },
-      ]
-    );
+    setDeleteModalVisible(true);
+  };
+
+  const confirmDelete = () => {
+    deleteNote(noteId);
+    setDeleteModalVisible(false);
+    navigation.goBack();
+  };
+
+  const cancelDelete = () => {
+    setDeleteModalVisible(false);
   };
 
   const handleShare = async () => {
@@ -195,15 +187,6 @@ const NoteEditorScreen = ({ navigation, route }) => {
     } catch (error) {
       console.error('Error sharing note:', error);
     }
-  };
-
-  const handleVoiceRecordingComplete = (uri) => {
-    // In a real app, you'd store the audio file and add a player
-    // For now, we'll just add a note about the recording
-    const timestamp = new Date().toLocaleTimeString();
-    const newContent = content + `\n\n[Voice recording - ${timestamp}]\n`;
-    setContent(newContent);
-    setShowVoiceRecorder(false);
   };
 
   const handleTogglePin = () => {
@@ -298,27 +281,9 @@ const NoteEditorScreen = ({ navigation, route }) => {
           )}
         </ScrollView>
 
-        {showVoiceRecorder && (
-          <VoiceRecorder onRecordingComplete={handleVoiceRecordingComplete} />
-        )}
-
         {!isKeyboardVisible && (
           <View style={styles.footer}>
             <View style={styles.footerButtons}>
-              <TouchableOpacity
-                style={styles.footerButton}
-                onPress={() => setShowVoiceRecorder(!showVoiceRecorder)}
-              >
-                <MaterialIcons 
-                  name={showVoiceRecorder ? "mic-off" : "mic"} 
-                  size={20} 
-                  color="#555" 
-                />
-                <Text style={styles.footerButtonText}>
-                  {showVoiceRecorder ? "Cancel" : "Voice"}
-                </Text>
-              </TouchableOpacity>
-              
               <TouchableOpacity
                 style={styles.footerButton}
                 onPress={() => setUseRichTextEditor(!useRichTextEditor)}
@@ -329,7 +294,7 @@ const NoteEditorScreen = ({ navigation, route }) => {
                   color="#555" 
                 />
                 <Text style={styles.footerButtonText}>
-                  {useRichTextEditor ? "Simple" : "Rich Text"}
+                  {useRichTextEditor ? "Simple Editor" : "Rich Text"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -339,6 +304,13 @@ const NoteEditorScreen = ({ navigation, route }) => {
             </Text>
           </View>
         )}
+
+        <NoteDeleteModal
+          visible={deleteModalVisible}
+          onClose={cancelDelete}
+          onConfirm={confirmDelete}
+          noteTitle={title}
+        />
       </View>
     </KeyboardAvoidingView>
   );
@@ -352,87 +324,114 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 16,
     zIndex: 10,
+    marginTop: Platform.OS === 'ios' ? 44 : 25,
   },
   backButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },  headerActions: {
-    flexDirection: 'row',
-  },
-  iconButton: {
-    padding: 8,
-    marginLeft: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 3,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  optionsContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: 'rgba(255,255,255,0.95)',
-    margin: 16,
-    borderRadius: 12,
-    padding: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
+        shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
       },
       android: {
-        elevation: 4,
+        elevation: 6,
+      },
+    }),
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+    }),
+  },
+  optionsContainer: {
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.18,
+        shadowRadius: 12,
+      },
+      android: {
+        elevation: 8,
       },
     }),
   },
   footer: {
-    padding: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.05)',
+    borderTopColor: 'rgba(0,0,0,0.06)',
+    backgroundColor: 'rgba(255,255,255,0.98)',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
   },
   footerText: {
-    fontSize: 12,
-    color: '#888',
+    fontSize: 13,
+    color: '#666',
     textAlign: 'center',
-    marginTop: 8,
+    marginTop: 12,
+    fontWeight: '500',
   },
   footerButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
   },
   footerButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    backgroundColor: 'rgba(26, 115, 232, 0.1)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(26, 115, 232, 0.2)',
   },
   footerButtonText: {
-    fontSize: 14,
-    color: '#555',
-    marginLeft: 8,
+    fontSize: 15,
+    color: '#1a73e8',
+    marginLeft: 10,
+    fontWeight: '600',
   },
 });
 

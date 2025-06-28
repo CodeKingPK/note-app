@@ -29,6 +29,7 @@ const NoteActionMenu = ({
   const opacity = useRef(new Animated.Value(0)).current;
   const actionItemOpacity = useRef(new Animated.Value(0)).current;
   const actionItemTranslateY = useRef(new Animated.Value(20)).current;
+  const actionItemScale = useRef(new Animated.Value(1)).current;
   
   // Use state for shadow properties to avoid mixing drivers
   const [shadowOpacityValue, setShadowOpacityValue] = useState(0);
@@ -115,6 +116,14 @@ const NoteActionMenu = ({
         useNativeDriver: true,
         easing: Easing.out(Easing.back(1.5))
       }).start();
+
+      // Animate scale for action items
+      Animated.spring(actionItemScale, {
+        toValue: 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      }).start();
     } else {
       // Animate menu sliding down faster
       Animated.timing(translateY, {
@@ -138,6 +147,7 @@ const NoteActionMenu = ({
       // Reset action item animations
       actionItemOpacity.setValue(0);
       actionItemTranslateY.setValue(20);
+      actionItemScale.setValue(1);
     }
   }, [visible, note]);
 
@@ -175,15 +185,10 @@ const NoteActionMenu = ({
             style={[
               styles.actionIconContainer,
               {
+                opacity: actionItemOpacity,
                 transform: [
-                  { 
-                    scale: Animated.spring({
-                      toValue: 1.1,
-                      friction: 5,
-                      tension: 40,
-                      useNativeDriver: true
-                    })
-                  }
+                  { translateY: actionItemTranslateY },
+                  { scale: actionItemScale }
                 ]
               }
             ]}
