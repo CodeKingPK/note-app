@@ -7,7 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "description": "A smart and intuitive note-taking app built with React Native",
-    "platforms": ["ios", "android", "web"],
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -42,7 +46,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "smart-notes-pritam-karmakar"
+        "projectId": "7bae1d2c-6ed8-4f6e-8275-e988f3a1c677"
       }
     }
   }

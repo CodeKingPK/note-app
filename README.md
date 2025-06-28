@@ -264,7 +264,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Pritam Karmakar**
 - GitHub: [@CodeKingPK](https://github.com/CodeKingPK)
-- Email: Your email here
+- Email: [pritamkarmakar849@gmail.com](mailto:pritamkarmakar849@gmail.com)
 
 ## 🙏 Acknowledgments
 
